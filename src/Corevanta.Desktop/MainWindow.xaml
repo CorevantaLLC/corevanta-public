@@ -1,0 +1,1656 @@
+<Window x:Class="Corevanta.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:nodify="clr-namespace:Nodify;assembly=Nodify"
+        xmlns:local="clr-namespace:Corevanta.Desktop"
+        mc:Ignorable="d"
+        Title="Corevanta"
+        Icon="pack://application:,,,/Assets/AppIcon.ico"
+        WindowState="Maximized"
+        MinHeight="700"
+        MinWidth="1200"
+        Height="800"
+        Width="1320"
+        PreviewKeyDown="MainWindow_PreviewKeyDown">
+    <Window.Resources>
+        <Style x:Key="DiagramItemContainerStyle" TargetType="{x:Type nodify:ItemContainer}">
+            <Setter Property="Location"
+                    Value="{Binding Position, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <Setter Property="IsDraggable" Value="{Binding IsDraggable}" />
+            <Setter Property="IsSelectable" Value="True" />
+            <Setter Property="SelectedBorderThickness" Value="1.2" />
+            <Style.Triggers>
+                <Trigger Property="IsDraggable" Value="True">
+                    <Setter Property="Cursor" Value="SizeAll" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <DataTemplate x:Key="DiagramConnectionTemplate" DataType="{x:Type local:LogicEdge}">
+            <Canvas IsHitTestVisible="False">
+                <Path Data="{Binding RouteGeometry}"
+                      Stroke="#2F2F2F"
+                      StrokeThickness="1.2"
+                      StrokeStartLineCap="Round"
+                      StrokeEndLineCap="Round"
+                      StrokeLineJoin="Round"
+                      SnapsToDevicePixels="True" />
+                <Polygon Points="0,0 -9,-4.5 -9,4.5"
+                         Fill="#2F2F2F"
+                         Stroke="#2F2F2F"
+                         StrokeThickness="0.8"
+                         Canvas.Left="{Binding ArrowPoint.X}"
+                         Canvas.Top="{Binding ArrowPoint.Y}">
+                    <Polygon.RenderTransform>
+                        <RotateTransform Angle="{Binding ArrowAngle}" />
+                    </Polygon.RenderTransform>
+                </Polygon>
+                <Border Background="Transparent"
+                        CornerRadius="2"
+                        Padding="2,0"
+                        Canvas.Left="{Binding LabelPoint.X}"
+                        Canvas.Top="{Binding LabelPoint.Y}">
+                    <TextBlock Text="{Binding DisplayText}"
+                               FontSize="10.5"
+                               Foreground="#3A3A3A" />
+                </Border>
+                <Border Background="Transparent"
+                        CornerRadius="2"
+                        Padding="2,0"
+                        Canvas.Left="{Binding StartLabelPoint.X}"
+                        Canvas.Top="{Binding StartLabelPoint.Y}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DisplayStartLabel}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding DisplayStartLabel}"
+                               FontSize="10"
+                               Foreground="#3A3A3A" />
+                </Border>
+                <Border Background="Transparent"
+                        CornerRadius="2"
+                        Padding="2,0"
+                        Canvas.Left="{Binding EndLabelPoint.X}"
+                        Canvas.Top="{Binding EndLabelPoint.Y}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DisplayEndLabel}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <TextBlock Text="{Binding DisplayEndLabel}"
+                               FontSize="10"
+                               Foreground="#3A3A3A" />
+                </Border>
+            </Canvas>
+        </DataTemplate>
+
+        <DataTemplate x:Key="DiagramNodeTemplate" DataType="{x:Type local:LogicVertex}">
+            <Grid x:Name="NodeRoot"
+                  Width="{Binding Width}"
+                  Height="{Binding Height}"
+                  Cursor="Arrow">
+                <Border x:Name="RectShape"
+                        CornerRadius="6"
+                        BorderBrush="#6E6E6E"
+                        BorderThickness="1.2"
+                        Background="#F6F6F6" />
+
+                <Path x:Name="AndShape"
+                      Visibility="Collapsed"
+                      Stretch="Fill"
+                      Fill="#FFFBEF"
+                      Stroke="#555555"
+                      StrokeThickness="1.2"
+                      Data="M20,10 L98,10 Q160,48 98,86 L20,86 Z" />
+
+                <Path x:Name="OrShape"
+                      Visibility="Collapsed"
+                      Stretch="Fill"
+                      Fill="#FFFBEF"
+                      Stroke="#555555"
+                      StrokeThickness="1.2"
+                      Data="M14,10 Q50,48 14,86 Q90,86 160,48 Q90,10 14,10 Z" />
+
+                <Grid x:Name="NotShape" Visibility="Collapsed">
+                    <Viewbox Stretch="Fill" Margin="8,8,8,8">
+                        <Canvas Width="180" Height="96">
+                            <Polygon Points="26,10 26,86 138,48"
+                                     Fill="#FFFBEF"
+                                     Stroke="#555555"
+                                     StrokeThickness="1.2" />
+                            <Ellipse Width="14"
+                                     Height="14"
+                                     Fill="#FFFBEF"
+                                     Stroke="#555555"
+                                     StrokeThickness="1.2"
+                                     Canvas.Left="146"
+                                     Canvas.Top="41" />
+                        </Canvas>
+                    </Viewbox>
+                </Grid>
+
+                <Grid x:Name="PulseShape" Visibility="Collapsed">
+                    <Border CornerRadius="4"
+                            BorderBrush="#555555"
+                            BorderThickness="1.2"
+                            Background="#FFFBEF" />
+                    <Path Data="M34,66 L34,42 L62,42 L62,26 L92,26 L92,66 L122,66"
+                          Stroke="#444444"
+                          StrokeThickness="2"
+                          StrokeLineJoin="Round"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round" />
+                </Grid>
+
+                <TextBlock x:Name="VertexText"
+                           Text="{Binding Title}"
+                           Background="Transparent"
+                           Foreground="#1E1E1E"
+                           FontWeight="SemiBold"
+                           FontSize="12"
+                           LineHeight="{Binding LineHeight}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="14,10,14,10"
+                           VerticalAlignment="Center" />
+
+                <TextBlock x:Name="UpstreamIndicator"
+                           Text="{Binding UpstreamIndicatorText}"
+                           Visibility="Collapsed"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="#2B4D66"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           Margin="6,0,0,0" />
+
+                <TextBlock x:Name="DownstreamIndicator"
+                           Text="{Binding DownstreamIndicatorText}"
+                           Visibility="Collapsed"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="#2B4D66"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Margin="0,0,6,0" />
+
+                <Border x:Name="OpcBadge"
+                        Visibility="Collapsed"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,4,6,0"
+                        Padding="7,1"
+                        CornerRadius="9"
+                        Background="#E8F4FF"
+                        BorderBrush="#7AA7D9"
+                        BorderThickness="1">
+                    <TextBlock Text="OPCI"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Foreground="#1E5F99" />
+                </Border>
+
+            </Grid>
+            <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsDraggable}" Value="True">
+                        <Setter TargetName="NodeRoot" Property="Cursor" Value="SizeAll" />
+                        <Setter TargetName="RectShape" Property="Cursor" Value="SizeAll" />
+                        <Setter TargetName="AndShape" Property="Cursor" Value="SizeAll" />
+                        <Setter TargetName="OrShape" Property="Cursor" Value="SizeAll" />
+                        <Setter TargetName="NotShape" Property="Cursor" Value="SizeAll" />
+                        <Setter TargetName="PulseShape" Property="Cursor" Value="SizeAll" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsClProgram}" Value="True">
+                        <Setter TargetName="RectShape" Property="Cursor" Value="SizeAll" />
+                        <Setter TargetName="VertexText" Property="Cursor" Value="Hand" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="INPUT">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#F0F0F0" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="Normal" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="4,2,4,2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="NUMERIC">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#F0F0F0" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="Normal" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="4,2,4,2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="REF">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#F0F0F0" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="Normal" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="4,2,4,2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="PLC_REF">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#E6F4FF" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#0A4E8B" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="SemiBold" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,2,4,2" />
+                        <Setter TargetName="VertexText" Property="TextWrapping" Value="NoWrap" />
+                        <Setter TargetName="VertexText" Property="TextTrimming" Value="CharacterEllipsis" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="PLC_REF_RIGHT">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#E6F4FF" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#0A4E8B" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="SemiBold" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,2,4,2" />
+                        <Setter TargetName="VertexText" Property="TextWrapping" Value="NoWrap" />
+                        <Setter TargetName="VertexText" Property="TextTrimming" Value="CharacterEllipsis" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="PLC_REF_LEFT">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#E6F4FF" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#0A4E8B" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Right" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="SemiBold" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="4,2,10,2" />
+                        <Setter TargetName="VertexText" Property="TextWrapping" Value="NoWrap" />
+                        <Setter TargetName="VertexText" Property="TextTrimming" Value="CharacterEllipsis" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="LOGIC_REF">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="VertexText" Property="Background" Value="#EEF8EA" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#2E5E1E" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="VertexText" Property="FontWeight" Value="SemiBold" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,2,4,2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="OUTPUT">
+                        <Setter TargetName="RectShape" Property="Background" Value="#F1FFF2" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="CHART">
+                        <Setter TargetName="VertexText" Property="FontSize" Value="11" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="24,8,24,8" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Center" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="SOFT_REF">
+                        <Setter TargetName="RectShape" Property="Background" Value="#FFF2CC" />
+                        <Setter TargetName="RectShape" Property="BorderBrush" Value="#C28E0E" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#6A4B00" />
+                        <Setter TargetName="VertexText" Property="FontSize" Value="11" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,6,8,6" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Top" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="SOFT_REF_OPCI">
+                        <Setter TargetName="RectShape" Property="Background" Value="#FFF2CC" />
+                        <Setter TargetName="RectShape" Property="BorderBrush" Value="#C28E0E" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#6A4B00" />
+                        <Setter TargetName="VertexText" Property="FontSize" Value="11" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,18,8,6" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Top" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Left" />
+                        <Setter TargetName="OpcBadge" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="PI_REF">
+                        <Setter TargetName="RectShape" Property="Background" Value="#E8F5FF" />
+                        <Setter TargetName="RectShape" Property="BorderBrush" Value="#2D7FB8" />
+                        <Setter TargetName="VertexText" Property="Foreground" Value="#0B4468" />
+                        <Setter TargetName="VertexText" Property="FontSize" Value="11" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,6,8,6" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Center" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding IsArrayMappingChart}" Value="True">
+                        <Setter TargetName="VertexText" Property="LineStackingStrategy" Value="BlockLineHeight" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="8,0,8,0" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ShowUpstreamIndicator}" Value="True">
+                        <Setter TargetName="UpstreamIndicator" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding ShowDownstreamIndicator}" Value="True">
+                        <Setter TargetName="DownstreamIndicator" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_AND">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="AndShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_OR">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="OrShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_NOR">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="OrShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_NAND">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="AndShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_NOT">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="NotShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_NOT_INLINE">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="NotShape" Property="Visibility" Value="Visible" />
+                        <Setter TargetName="VertexText" Property="TextAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="VerticalAlignment" Value="Center" />
+                        <Setter TargetName="VertexText" Property="Margin" Value="14,10,14,10" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_XOR">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="OrShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_XNOR">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="OrShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_PULSE">
+                        <Setter TargetName="RectShape" Property="Visibility" Value="Collapsed" />
+                        <Setter TargetName="PulseShape" Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_COMPARE">
+                        <Setter TargetName="RectShape" Property="Background" Value="#FFF5E8" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_TIMER">
+                        <Setter TargetName="RectShape" Property="Background" Value="#EEF7EE" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Kind}" Value="GATE_MONITOR">
+                        <Setter TargetName="RectShape" Property="Background" Value="#FFEFEF" />
+                    </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+    <Grid Margin="12">
+        <TabControl x:Name="MainTabControl"
+                    SelectionChanged="MainTabControl_SelectionChanged">
+            <TabItem Header="Import">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Width="90"
+                                Padding="10,6"
+                                Click="NewProject_Click"
+                                Content="New" />
+                        <Button Width="90"
+                                Margin="8,0,0,0"
+                                Padding="10,6"
+                                Click="OpenProject_Click"
+                                Content="Open..." />
+                        <Button Width="90"
+                                Margin="8,0,0,0"
+                                Padding="10,6"
+                                Click="SaveProject_Click"
+                                Content="Save" />
+                        <Button Width="110"
+                                Margin="8,0,0,0"
+                                Padding="10,6"
+                                Click="ProjectPassword_Click"
+                                Content="Password..." />
+                        <Button x:Name="LicenseButton"
+                                Width="100"
+                                Margin="8,0,0,0"
+                                Padding="10,6"
+                                Click="LicenseActivation_Click"
+                                Content="License..." />
+                        <Button x:Name="Cv2TestButton"
+                                Width="110"
+                                Margin="8,0,0,0"
+                                Padding="10,6"
+                                Click="Cv2ActivationTest_Click"
+                                Content="CV2 Test..." />
+                        <Button Width="130"
+                                Margin="8,0,0,0"
+                                Padding="10,6"
+                                Click="UndoImport_Click"
+                                Content="Undo Import..." />
+                        <TextBlock x:Name="ProjectStatusText"
+                                    Margin="14,8,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="Project: (unsaved working project)" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportEbFiles_Click"
+                                Content="Import EB Files..." />
+                        <TextBlock x:Name="ImportSummaryText"
+                                    Margin="14,8,0,0"
+                                    VerticalAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Text="No files imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="2"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="IndexClFolder_Click"
+                                Content="Import CL Folder..." />
+                        <TextBlock x:Name="ClImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No CL folder indexed yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="3"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportAbPlcFiles_Click"
+                                Content="AB PLC5 Import Files..." />
+                        <TextBlock x:Name="AbPlcImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No AB PLC5 files imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="4"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportAbLogixFiles_Click"
+                                Content="AB Logix Import Files..." />
+                        <TextBlock x:Name="AbLogixImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No AB Logix files imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="5"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportModiconFiles_Click"
+                                Content="Import Modicon Files..." />
+                        <TextBlock x:Name="ModiconImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No Modicon files imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="6"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportSoftConnections_Click"
+                                Content="Import Experion Connections..." />
+                        <TextBlock x:Name="SoftConnectionsImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No soft connections imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="7"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportOpcIntegratorMappings_Click"
+                                Content="OPC Integrator Import..." />
+                        <TextBlock x:Name="OpcIntegratorImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No OPC Integrator mappings imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="8"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportGraphicsPoints_Click"
+                                Content="HMIWeb Graphics Import..." />
+                        <TextBlock x:Name="GraphicsPointsImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No HMIWeb graphics imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="9"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button Width="200"
+                                Padding="10,6"
+                                Click="ImportPiMappings_Click"
+                                Content="PI Import..." />
+                        <TextBlock x:Name="PiImportSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No PI mappings imported yet." />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="10"
+                                Margin="0,10,0,0"
+                                Orientation="Horizontal">
+                        <Button x:Name="ExportPointDetailsButton"
+                                Width="200"
+                                Padding="10,6"
+                                Click="ExportPointDetailsExcel_Click"
+                                Content="Export Point Details..." />
+                        <TextBlock x:Name="ExportPointsSummaryText"
+                                   Margin="14,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No point export run yet." />
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="11"
+                               Margin="0,12,0,8"
+                               FontSize="12"
+                               Foreground="#555555"
+                               Text="Import log:" />
+
+                    <ListBox x:Name="ImportLogList"
+                             Grid.Row="12"
+                             FontFamily="Consolas"
+                             FontSize="13" />
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Detail">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="350" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="SearchTextBox"
+                                 Width="360"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="SearchTextBox_KeyDown"
+                                 ToolTip="Search by SYSTEM ENTITY, &amp;N name, or type" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchButton_Click"
+                                Content="Search" />
+                        <TextBlock Margin="14,7,6,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="#555555"
+                                   Text="Point Type:" />
+                        <ComboBox x:Name="DetailPointTypeFilterComboBox"
+                                  Width="220"
+                                  Margin="0,0,8,0"
+                                  Padding="6,4"
+                                  SelectionChanged="DetailPointTypeFilterComboBox_SelectionChanged" />
+                        <TextBlock x:Name="SearchSummaryText"
+                                   Margin="12,7,0,0"
+                                   Foreground="#555555"
+                                   Text="No search run yet." />
+                    </StackPanel>
+
+                    <ListBox x:Name="EntityResultsList"
+                             Grid.Row="1"
+                             Grid.Column="0"
+                             Margin="0,10,0,0"
+                             SelectionChanged="EntityResultsList_SelectionChanged"
+                             DisplayMemberPath="DisplayName" />
+
+                    <Border Grid.Row="1"
+                            Grid.Column="2"
+                            Margin="0,10,0,0"
+                            BorderBrush="#D0D0D0"
+                            BorderThickness="1">
+                        <DataGrid x:Name="DetailsDataGrid"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  CanUserDeleteRows="False"
+                                  CanUserResizeRows="False"
+                                  GridLinesVisibility="All"
+                                  HeadersVisibility="Column"
+                                  IsReadOnly="True"
+                                  RowHeaderWidth="0"
+                                  SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Width="220"
+                                                    Binding="{Binding Property}"
+                                                    Header="Property" />
+                                <DataGridTemplateColumn Width="*" Header="Value">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <TextBlock x:Name="PlainText" Text="{Binding Value}" />
+                                                <TextBlock x:Name="LinkText" Visibility="Collapsed">
+                                                    <Hyperlink Click="PropertyLink_Click" Tag="{Binding LinkToken}">
+                                                        <Run Text="{Binding Value}" />
+                                                    </Hyperlink>
+                                                </TextBlock>
+                                            </Grid>
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding IsLink}" Value="True">
+                                                    <Setter TargetName="PlainText" Property="Visibility" Value="Collapsed" />
+                                                    <Setter TargetName="LinkText" Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="CL Programs">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="380" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="ClSearchTextBox"
+                                 Width="280"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="ClSearchTextBox_KeyDown"
+                                 ToolTip="Search CL program name" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchClButton_Click"
+                                Content="Search" />
+                        <TextBlock x:Name="ClSummaryText"
+                                   Margin="12,7,0,0"
+                                   Foreground="#555555"
+                                   Text="No CL index yet." />
+                    </StackPanel>
+
+                    <ListBox x:Name="ClResultsList"
+                             Grid.Row="1"
+                             Grid.Column="0"
+                             Margin="0,10,0,0"
+                             SelectionChanged="ClResultsList_SelectionChanged"
+                             DisplayMemberPath="DisplayLabel" />
+
+                    <Grid Grid.Row="1"
+                          Grid.Column="2"
+                          Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="ClProgramHeaderText"
+                                   FontWeight="SemiBold"
+                                   Text="Select a CL program to view source." />
+
+                        <StackPanel Grid.Row="1"
+                                    Margin="0,8,0,0"
+                                    Orientation="Horizontal">
+                            <TextBox x:Name="ClFindTextBox"
+                                     Width="260"
+                                     Margin="0,0,8,0"
+                                     Padding="8,4"
+                                     KeyDown="ClFindTextBox_KeyDown"
+                                     TextChanged="ClFindTextBox_TextChanged"
+                                     ToolTip="Find text in current CL file" />
+                            <Button Width="88"
+                                    Padding="10,4"
+                                    Click="ClFindPreviousButton_Click"
+                                    Content="Find Prev" />
+                            <Button Width="80"
+                                    Margin="6,0,0,0"
+                                    Padding="10,4"
+                                    Click="ClFindNextButton_Click"
+                                    Content="Find Next" />
+                            <TextBlock x:Name="ClFindStatusText"
+                                       Margin="10,6,0,0"
+                                       Foreground="#555555"
+                                       Text="Find: enter text" />
+                        </StackPanel>
+
+                        <TextBox x:Name="ClTextViewer"
+                                 Grid.Row="2"
+                                 Margin="0,8,0,0"
+                                 FontFamily="Consolas"
+                                 FontSize="13"
+                                 IsReadOnly="True"
+                                 AcceptsReturn="True"
+                                 AcceptsTab="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 TextWrapping="NoWrap" />
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Logic Block">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="LogicSearchTextBox"
+                                 Width="320"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="LogicSearchTextBox_KeyDown"
+                                 ToolTip="Search LOGICNIM entity name or description" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchLogicButton_Click"
+                                Content="Search" />
+                        <Button Width="100"
+                                Margin="8,0,0,0"
+                                Padding="10,5"
+                                Click="SaveLogicLayoutButton_Click"
+                                Content="Save Layout" />
+                        <Button Width="105"
+                                Margin="8,0,0,0"
+                                Padding="10,5"
+                                Click="ResetLogicLayoutButton_Click"
+                                Content="Reset Layout" />
+                        <TextBlock x:Name="LogicSummaryText"
+                                    Margin="12,7,0,0"
+                                    Foreground="#555555"
+                                    Text="No logic blocks loaded." />
+                    </StackPanel>
+
+                    <ListBox x:Name="LogicResultsList"
+                             Grid.Row="1"
+                             Grid.Column="0"
+                             Margin="0,10,0,0"
+                             SelectionChanged="LogicResultsList_SelectionChanged"
+                             DisplayMemberPath="DisplayLabel" />
+
+                    <Grid Grid.Row="1" Grid.Column="2" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="LogicHeaderText"
+                                   FontWeight="SemiBold"
+                                   Text="Select a logic block to view diagram." />
+
+                        <Border Grid.Row="1"
+                                Margin="0,8,0,0"
+                                Background="#F0F0F0"
+                                BorderBrush="#C8C8C8"
+                                BorderThickness="1">
+                            <nodify:NodifyEditor x:Name="LogicDiagramEditor"
+                                                 Background="#F0F0F0"
+                                                 ConnectionTemplate="{StaticResource DiagramConnectionTemplate}"
+                                                 DisplayConnectionsOnTop="False"
+                                                 GridCellSize="1"
+                                                 ItemContainerStyle="{StaticResource DiagramItemContainerStyle}"
+                                                 ItemTemplate="{StaticResource DiagramNodeTemplate}"
+                                                 PreviewMouseLeftButtonDown="LogicDiagramEditor_PreviewMouseLeftButtonDown"
+                                                 PreviewMouseLeftButtonUp="LogicDiagramEditor_PreviewMouseLeftButtonUp"
+                                                 PreviewMouseRightButtonDown="DiagramEditor_PreviewMouseRightButtonDown"
+                                                 PreviewMouseMove="DiagramEditor_PreviewMouseMove"
+                                                 PreviewMouseRightButtonUp="DiagramEditor_PreviewMouseRightButtonUp"
+                                                 LostMouseCapture="DiagramEditor_LostMouseCapture" />
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Chart">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="320" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="ChartSearchTextBox"
+                                 Width="320"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="ChartSearchTextBox_KeyDown"
+                                 ToolTip="Search by SYSTEM ENTITY, &amp;N name, or type" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchChartButton_Click"
+                                Content="Search" />
+                        <TextBlock x:Name="ChartSummaryText"
+                                   Margin="12,7,0,0"
+                                   Foreground="#555555"
+                                   Text="No chart search run yet." />
+                        <Button Width="62"
+                                Margin="12,0,0,0"
+                                Padding="8,5"
+                                Click="ChartExpandUpstream_Click"
+                                Content="Up +" />
+                        <Button Width="62"
+                                Margin="6,0,0,0"
+                                Padding="8,5"
+                                Click="ChartMinimizeUpstream_Click"
+                                Content="Up -" />
+                        <Button Width="75"
+                                Margin="6,0,0,0"
+                                Padding="8,5"
+                                Click="ChartExpandDownstream_Click"
+                                Content="Down +" />
+                        <Button Width="75"
+                                Margin="6,0,0,0"
+                                Padding="8,5"
+                                Click="ChartMinimizeDownstream_Click"
+                                Content="Down -" />
+                        <Button Width="68"
+                                Margin="6,0,0,0"
+                                Padding="8,5"
+                                Click="ChartResetDepth_Click"
+                                Content="Reset" />
+                        <TextBlock x:Name="ChartDepthText"
+                                   Margin="10,7,0,0"
+                                   Foreground="#555555"
+                                   Text="U:1 D:1" />
+                        <CheckBox x:Name="ChartShowPiMappingsCheckBox"
+                                  Margin="12,6,0,0"
+                                  VerticalAlignment="Center"
+                                  IsChecked="True"
+                                  Checked="ChartShowPiMappingsCheckBox_Changed"
+                                  Unchecked="ChartShowPiMappingsCheckBox_Changed"
+                                  Content="Show PI Mappings" />
+                    </StackPanel>
+
+                    <ListBox x:Name="ChartResultsList"
+                             Grid.Row="1"
+                             Grid.Column="0"
+                             Margin="0,10,0,0"
+                             SelectionChanged="ChartResultsList_SelectionChanged"
+                             DisplayMemberPath="DisplayName" />
+
+                    <Grid Grid.Row="1" Grid.Column="2" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="ChartHeaderText"
+                                   FontWeight="SemiBold"
+                                   Text="Select an entity to view chart." />
+
+                        <Border Grid.Row="1"
+                                Margin="0,8,0,0"
+                                Background="#F0F0F0"
+                                BorderBrush="#C8C8C8"
+                                BorderThickness="1">
+                            <nodify:NodifyEditor x:Name="ChartDiagramEditor"
+                                                 Background="#F0F0F0"
+                                                 ConnectionTemplate="{StaticResource DiagramConnectionTemplate}"
+                                                 DisplayConnectionsOnTop="True"
+                                                 GridCellSize="1"
+                                                 ItemContainerStyle="{StaticResource DiagramItemContainerStyle}"
+                                                 ItemTemplate="{StaticResource DiagramNodeTemplate}"
+                                                 PreviewMouseRightButtonDown="DiagramEditor_PreviewMouseRightButtonDown"
+                                                 PreviewMouseMove="DiagramEditor_PreviewMouseMove"
+                                                 PreviewMouseRightButtonUp="DiagramEditor_PreviewMouseRightButtonUp"
+                                                 LostMouseCapture="DiagramEditor_LostMouseCapture"
+                                                 PreviewMouseLeftButtonDown="ChartDiagramEditor_PreviewMouseLeftButtonDown"
+                                                 PreviewMouseLeftButtonUp="ChartDiagramEditor_PreviewMouseLeftButtonUp" />
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Hardware">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="340" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="HardwareSearchTextBox"
+                                 Width="320"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="HardwareSearchTextBox_KeyDown"
+                                 ToolTip="Search BOX/PM_BOX by name, ntwk, node, or module text" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchHardwareButton_Click"
+                                Content="Search" />
+                        <TextBlock x:Name="HardwareSummaryText"
+                                   Margin="12,7,0,0"
+                                   Foreground="#555555"
+                                   Text="No hardware search run yet." />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Grid.Column="0" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="120" />
+                        </Grid.RowDefinitions>
+
+                        <ListBox x:Name="HardwareResultsList"
+                                 Grid.Row="0"
+                                 SelectionChanged="HardwareResultsList_SelectionChanged"
+                                 DisplayMemberPath="DisplayLabel" />
+
+                        <TextBlock Grid.Row="1"
+                                   Margin="0,8,0,4"
+                                   FontWeight="SemiBold"
+                                   Foreground="#555555"
+                                   Text="Assigned PLCs" />
+
+                        <Border Grid.Row="2"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <TreeView x:Name="HardwareAssignedPlcTreeView"
+                                      Margin="4"
+                                      SelectedItemChanged="HardwareAssignedPlcTreeView_SelectedItemChanged"
+                                      BorderThickness="0">
+                                <TreeView.ItemContainerStyle>
+                                    <Style TargetType="{x:Type TreeViewItem}">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
+                                    </Style>
+                                </TreeView.ItemContainerStyle>
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <TextBlock Text="{Binding Title}" />
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Grid.Column="2" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="150" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="1.6*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="HardwareHeaderText"
+                                   FontWeight="SemiBold"
+                                   Text="Select a BOX/PM_BOX to view modules and points." />
+
+                        <Border Grid.Row="1"
+                                Margin="0,8,0,0"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <TreeView x:Name="HardwareTreeView"
+                                      Margin="6"
+                                      SelectedItemChanged="HardwareTreeView_SelectedItemChanged">
+                                <TreeView.ItemContainerStyle>
+                                    <Style TargetType="{x:Type TreeViewItem}">
+                                        <Setter Property="IsExpanded" Value="{Binding IsExpanded}" />
+                                    </Style>
+                                </TreeView.ItemContainerStyle>
+                                <TreeView.ItemTemplate>
+                                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                                        <TextBlock Text="{Binding Title}" />
+                                    </HierarchicalDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </Border>
+
+                        <TextBlock Grid.Row="2"
+                                   Margin="0,8,0,4"
+                                   FontWeight="SemiBold"
+                                   Foreground="#555555"
+                                   Text="DCS Hardware Points" />
+
+                        <Border Grid.Row="3"
+                                Margin="0,0,0,0"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <DataGrid x:Name="HardwarePointsGrid"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      CanUserResizeRows="False"
+                                      GridLinesVisibility="All"
+                                      HeadersVisibility="Column"
+                                      IsReadOnly="True"
+                                      RowHeaderWidth="0"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Width="230"
+                                                        Binding="{Binding Name}"
+                                                        Header="Tag" />
+                                    <DataGridTextColumn Width="110"
+                                                        Binding="{Binding EntityType}"
+                                                        Header="_type" />
+                                    <DataGridTemplateColumn Width="140" Header="Modbus In">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <TextBlock x:Name="ModbusInPlainText"
+                                                               Visibility="Collapsed"
+                                                               Text="{Binding ModbusAddressIn}" />
+                                                    <TextBlock x:Name="ModbusInLinkText">
+                                                        <Hyperlink Click="HardwareAddressModiconLink_Click" Tag="{Binding ModbusAddressIn}">
+                                                            <Run Text="{Binding ModbusAddressIn}" />
+                                                        </Hyperlink>
+                                                    </TextBlock>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding CanOpenModbusInAddress}" Value="False">
+                                                        <Setter TargetName="ModbusInPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="ModbusInLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ModbusAddressIn}" Value="">
+                                                        <Setter TargetName="ModbusInPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="ModbusInLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ModbusAddressIn}" Value="{x:Null}">
+                                                        <Setter TargetName="ModbusInPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="ModbusInLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="140" Header="Modbus Out">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <TextBlock x:Name="ModbusOutPlainText"
+                                                               Visibility="Collapsed"
+                                                               Text="{Binding ModbusAddressOut}" />
+                                                    <TextBlock x:Name="ModbusOutLinkText">
+                                                        <Hyperlink Click="HardwareAddressModiconLink_Click" Tag="{Binding ModbusAddressOut}">
+                                                            <Run Text="{Binding ModbusAddressOut}" />
+                                                        </Hyperlink>
+                                                    </TextBlock>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding CanOpenModbusOutAddress}" Value="False">
+                                                        <Setter TargetName="ModbusOutPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="ModbusOutLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ModbusAddressOut}" Value="">
+                                                        <Setter TargetName="ModbusOutPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="ModbusOutLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ModbusAddressOut}" Value="{x:Null}">
+                                                        <Setter TargetName="ModbusOutPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="ModbusOutLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="150" Header="AB In">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <TextBlock x:Name="AbInPlainText"
+                                                               Visibility="Collapsed"
+                                                               Text="{Binding AbAddressIn}" />
+                                                    <TextBlock x:Name="AbInLinkText">
+                                                        <Hyperlink Click="HardwareAddressAbLink_Click" Tag="{Binding AbAddressIn}">
+                                                            <Run Text="{Binding AbAddressIn}" />
+                                                        </Hyperlink>
+                                                    </TextBlock>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding CanOpenAbInAddress}" Value="False">
+                                                        <Setter TargetName="AbInPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="AbInLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding AbAddressIn}" Value="">
+                                                        <Setter TargetName="AbInPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="AbInLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding AbAddressIn}" Value="{x:Null}">
+                                                        <Setter TargetName="AbInPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="AbInLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="150" Header="AB Out">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <TextBlock x:Name="AbOutPlainText"
+                                                               Visibility="Collapsed"
+                                                               Text="{Binding AbAddressOut}" />
+                                                    <TextBlock x:Name="AbOutLinkText">
+                                                        <Hyperlink Click="HardwareAddressAbLink_Click" Tag="{Binding AbAddressOut}">
+                                                            <Run Text="{Binding AbAddressOut}" />
+                                                        </Hyperlink>
+                                                    </TextBlock>
+                                                </Grid>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding CanOpenAbOutAddress}" Value="False">
+                                                        <Setter TargetName="AbOutPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="AbOutLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding AbAddressOut}" Value="">
+                                                        <Setter TargetName="AbOutPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="AbOutLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding AbAddressOut}" Value="{x:Null}">
+                                                        <Setter TargetName="AbOutPlainText" Property="Visibility" Value="Visible" />
+                                                        <Setter TargetName="AbOutLinkText" Property="Visibility" Value="Collapsed" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTextColumn Width="160"
+                                                        Binding="{Binding Location}"
+                                                        Header="Location" />
+                                    <DataGridTemplateColumn Width="90" Header="Chart">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <Hyperlink Click="HardwarePointChartLink_Click" Tag="{Binding EntityId}">
+                                                        <Run Text="Open" />
+                                                    </Hyperlink>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="90" Header="Display">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <Hyperlink Click="HardwarePointDetailLink_Click" Tag="{Binding EntityId}">
+                                                        <Run Text="Open" />
+                                                    </Hyperlink>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+
+                        <TextBlock x:Name="HardwareTrafficCopHeaderText"
+                                   Grid.Row="4"
+                                   Margin="0,8,0,4"
+                                   FontWeight="SemiBold"
+                                   Foreground="#555555"
+                                   Text="PLC Mapping: no hardware box selected." />
+
+                        <Border Grid.Row="5"
+                                Margin="0,0,0,0"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <DataGrid x:Name="HardwareTrafficCopGrid"
+                                      MaxHeight="220"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      CanUserResizeRows="False"
+                                      GridLinesVisibility="All"
+                                      HeadersVisibility="Column"
+                                      IsReadOnly="True"
+                                      RowHeaderWidth="0"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn x:Name="HardwareTrafficCopDropColumn"
+                                                        Width="70"
+                                                        Binding="{Binding DropDisplay}"
+                                                        Header="Drop" />
+                                    <DataGridTextColumn Width="70"
+                                                        Binding="{Binding SlotDisplay}"
+                                                        Header="Slot" />
+                                    <DataGridTextColumn Width="180"
+                                                        Binding="{Binding ModuleDisplay}"
+                                                        Header="Module" />
+                                    <DataGridTextColumn Width="140"
+                                                        Binding="{Binding ReferenceRange}"
+                                                        Header="References" />
+                                    <DataGridTextColumn Width="80"
+                                                        Binding="{Binding DataType}"
+                                                        Header="Data" />
+                                    <DataGridTextColumn Width="*"
+                                                        Binding="{Binding Description}"
+                                                        Header="Description" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+
+                        <TextBlock Grid.Row="6"
+                                   Margin="0,0,0,4"
+                                   FontWeight="SemiBold"
+                                   Foreground="#555555"
+                                   Text="PLC Linked DCS Points" />
+
+                        <Border Grid.Row="7"
+                                Margin="0,0,0,0"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <DataGrid x:Name="HardwarePlcPointsGrid"
+                                      AutoGenerateColumns="False"
+                                      CanUserAddRows="False"
+                                      CanUserDeleteRows="False"
+                                      CanUserResizeRows="False"
+                                      GridLinesVisibility="All"
+                                      HeadersVisibility="Column"
+                                      IsReadOnly="True"
+                                      RowHeaderWidth="0"
+                                      SelectionMode="Single">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Width="220"
+                                                        Binding="{Binding Name}"
+                                                        Header="Point" />
+                                    <DataGridTextColumn Width="220"
+                                                        Binding="{Binding TagName}"
+                                                        Header="Tag" />
+                                    <DataGridTextColumn Width="80"
+                                                        Binding="{Binding Channel}"
+                                                        Header="Channel" />
+                                    <DataGridTextColumn Width="90"
+                                                        Binding="{Binding RegisterAddress}"
+                                                        Header="Register" />
+                                    <DataGridTextColumn Width="220"
+                                                        Binding="{Binding RegisterDescription}"
+                                                        Header="Reg Description" />
+                                    <DataGridTextColumn Width="180"
+                                                        Binding="{Binding Location}"
+                                                        Header="Location" />
+                                    <DataGridTemplateColumn Width="90" Header="Chart">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <Hyperlink Click="HardwarePointChartLink_Click" Tag="{Binding EntityId}">
+                                                        <Run Text="Open" />
+                                                    </Hyperlink>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Width="90" Header="Detail">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock>
+                                                    <Hyperlink Click="HardwarePointDetailLink_Click" Tag="{Binding EntityId}">
+                                                        <Run Text="Open" />
+                                                    </Hyperlink>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="AB">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="AbPlcSearchTextBox"
+                                 Width="260"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="AbPlcSearchTextBox_KeyDown"
+                                 ToolTip="Search AB import name, connection type, HWY/BOX, or file" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchAbPlcButton_Click"
+                                Content="Search" />
+                        <TextBlock x:Name="AbPlcSummaryText"
+                                   Margin="8,7,0,0"
+                                   Foreground="#555555"
+                                   Text="No AB import search run yet."
+                                   Visibility="Collapsed" />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Grid.Column="0" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="220" />
+                        </Grid.RowDefinitions>
+
+                        <ListBox x:Name="AbPlcSystemsList"
+                                 SelectionChanged="AbPlcSystemsList_SelectionChanged"
+                                 DisplayMemberPath="DisplayLabel" />
+
+                        <TextBlock x:Name="AbPlcHeaderText"
+                                   Grid.Row="1"
+                                   Margin="0,8,0,6"
+                                   Foreground="#555555"
+                                   Text="Select an AB import to view ladder files." />
+
+                        <ListBox x:Name="AbPlcFilesList"
+                                 Grid.Row="2"
+                                 SelectionMode="Extended"
+                                 SelectionChanged="AbPlcFilesList_SelectionChanged"
+                                 DisplayMemberPath="FileName" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" Grid.Column="2" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="AbPlcViewerHeaderText"
+                                   FontWeight="SemiBold"
+                                   Text="Select one or more XPS files to view ladder logic." />
+
+                                                <StackPanel Grid.Row="1"
+                                    Margin="0,6,0,2"
+                                    Orientation="Horizontal">
+                            <TextBox x:Name="AbPlcXpsSearchBox"
+                                     Width="200"
+                                     Padding="6,4"
+                                     KeyDown="AbPlcXpsSearchBox_KeyDown"
+                                     ToolTip="Enter full address (for example N22:44/10) to jump to the first mapped reference." />
+                            <Button Width="120"
+                                    Margin="6,0,0,0"
+                                    Padding="8,4"
+                                    Click="AbPlcXpsGoRefButton_Click"
+                                    Content="Address Search" />
+                            <Button Width="160"
+                                    Margin="6,0,0,0"
+                                    Padding="8,4"
+                                    Click="AbPlcXpsFindButton_Click"
+                                    Content="Open Find (Ctrl+F)" />
+                            <Button x:Name="AbPlcXpsPrevButton"
+                                    Width="60"
+                                    Margin="6,0,0,0"
+                                    Padding="8,4"
+                                    Click="AbPlcXpsPrevButton_Click"
+                                    Content="Prev"
+                                    IsEnabled="False" />
+                            <Button x:Name="AbPlcXpsNextButton"
+                                    Width="60"
+                                    Margin="4,0,0,0"
+                                    Padding="8,4"
+                                    Click="AbPlcXpsNextButton_Click"
+                                    Content="Next"
+                                    IsEnabled="False" />
+                            <TextBlock x:Name="AbPlcXpsSearchStatusText"
+                                       Margin="10,6,0,0"
+                                       Foreground="#555555" />
+                        </StackPanel>
+
+                        <Border Grid.Row="2"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <DocumentViewer x:Name="AbPlcXpsViewer" />
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Modicon">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.ColumnSpan="3"
+                                Orientation="Horizontal">
+                        <TextBox x:Name="ModiconSearchTextBox"
+                                 Width="260"
+                                 Margin="0,0,8,0"
+                                 Padding="8,5"
+                                 KeyDown="ModiconSearchTextBox_KeyDown"
+                                 ToolTip="Search Modicon PLC name, connection type, HWY/BOX, registers file, or PLC mapping file" />
+                        <Button Width="90"
+                                Padding="10,5"
+                                Click="SearchModiconButton_Click"
+                                Content="Search" />
+                        <Button Width="190"
+                                Margin="8,0,0,0"
+                                Padding="10,5"
+                                Click="ImportModiconFiles_Click"
+                                Content="Import Modicon Files..." />
+                        <TextBlock x:Name="ModiconSummaryText"
+                                   Margin="12,7,0,0"
+                                   Foreground="#555555"
+                                   Text="No Modicon search run yet." />
+                    </StackPanel>
+
+                    <Grid Grid.Row="1" Grid.Column="0" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="220" />
+                        </Grid.RowDefinitions>
+
+                        <ListBox x:Name="ModiconSystemsList"
+                                 SelectionChanged="ModiconSystemsList_SelectionChanged"
+                                 DisplayMemberPath="DisplayLabel" />
+
+                        <TextBlock x:Name="ModiconHeaderText"
+                                   Grid.Row="1"
+                                   Margin="0,8,0,6"
+                                   Foreground="#555555"
+                                   Text="Select a Modicon PLC to view program files." />
+
+                        <ListBox x:Name="ModiconFilesList"
+                                 Grid.Row="2"
+                                 SelectionMode="Extended"
+                                 SelectionChanged="ModiconFilesList_SelectionChanged"
+                                 DisplayMemberPath="FileName" />
+                    </Grid>
+
+                    <Grid Grid.Row="1" Grid.Column="2" Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock x:Name="ModiconViewerHeaderText"
+                                   FontWeight="SemiBold"
+                                   Text="Select one or more XPS files to view ladder logic." />
+
+                                                <StackPanel Grid.Row="1"
+                                    Margin="0,6,0,2"
+                                    Orientation="Horizontal">
+                            <TextBox x:Name="ModiconXpsSearchBox"
+                                     Width="200"
+                                     Padding="6,4"
+                                     KeyDown="ModiconXpsSearchBox_KeyDown"
+                                     ToolTip="Enter full address (for example N22:44/10) to jump to the first mapped reference." />
+                            <Button Width="120"
+                                    Margin="6,0,0,0"
+                                    Padding="8,4"
+                                    Click="ModiconXpsGoRefButton_Click"
+                                    Content="Address Search" />
+                            <Button Width="160"
+                                    Margin="6,0,0,0"
+                                    Padding="8,4"
+                                    Click="ModiconXpsFindButton_Click"
+                                    Content="Open Find (Ctrl+F)" />
+                            <Button x:Name="ModiconXpsPrevButton"
+                                    Width="60"
+                                    Margin="6,0,0,0"
+                                    Padding="8,4"
+                                    Click="ModiconXpsPrevButton_Click"
+                                    Content="Prev"
+                                    IsEnabled="False" />
+                            <Button x:Name="ModiconXpsNextButton"
+                                    Width="60"
+                                    Margin="4,0,0,0"
+                                    Padding="8,4"
+                                    Click="ModiconXpsNextButton_Click"
+                                    Content="Next"
+                                    IsEnabled="False" />
+                            <TextBlock x:Name="ModiconXpsSearchStatusText"
+                                       Margin="10,6,0,0"
+                                       Foreground="#555555" />
+                        </StackPanel>
+
+                        <Border Grid.Row="2"
+                                BorderBrush="#D0D0D0"
+                                BorderThickness="1">
+                            <DocumentViewer x:Name="ModiconXpsViewer" />
+                        </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Change Management">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Width="100"
+                                Padding="10,6"
+                                Click="RefreshChangeManagement_Click"
+                                Content="Refresh" />
+                        <TextBlock x:Name="ChangeManagementSummaryText"
+                                   Margin="12,8,0,0"
+                                   VerticalAlignment="Center"
+                                   FontWeight="SemiBold"
+                                   Text="No EB import comparison has been run yet." />
+                    </StackPanel>
+
+                    <DataGrid x:Name="ChangeManagementGrid"
+                              Grid.Row="1"
+                              Margin="0,10,0,0"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              CanUserResizeRows="True"
+                              IsReadOnly="True"
+                              SelectionMode="Single">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Import Date"
+                                                Width="180"
+                                                Binding="{Binding ImportedAtLocalText}" />
+                            <DataGridTextColumn Header="Change"
+                                                Width="110"
+                                                Binding="{Binding ChangeType}" />
+                            <DataGridTextColumn Header="Entity"
+                                                Width="260"
+                                                Binding="{Binding EntityName}" />
+                            <DataGridTextColumn Header="Type"
+                                                Width="140"
+                                                Binding="{Binding EntityType}" />
+                            <DataGridTextColumn Header="Details"
+                                                Width="*"
+                                                Binding="{Binding Details}">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                        <Setter Property="TextTrimming" Value="None" />
+                                        <Setter Property="VerticalAlignment" Value="Top" />
+                                        <Setter Property="Padding" Value="2,2,2,2" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Window>

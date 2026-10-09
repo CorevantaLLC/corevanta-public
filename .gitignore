@@ -11,6 +11,19 @@
 *.sln.docstates
 *.env
 
+# Corevanta project data, customer exports, and credentials
+*.lcn
+*.eb
+*.cl
+*.db
+*.sqlite
+*.sqlite3
+*.p12
+*.pem
+*.key
+*.p7b
+*.license
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
