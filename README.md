@@ -2,7 +2,7 @@
 
 Corevanta is a source-available Windows desktop engineering tool for legacy Honeywell TDC DCS documentation, search, chart viewing, CL program browsing, logic block viewing, hardware references, PLC integration, and change-management review.
 
-[Download the signed installer](https://github.com/CorevantaLLC/corevanta-public/releases/latest) | [Purchase a commercial license](https://buy.stripe.com/9B64gz5T7cKm86bb4Pfbq00) | [Product website](https://corevantallc.com) | [User manual](./Corevanta%20User%20Manual.pdf)
+[Download the signed installer](https://github.com/CorevantaLLC/corevanta-public/releases/latest/download/Corevanta-GitHub-Free-Setup-v1.0.4.exe) | [View release details](https://github.com/CorevantaLLC/corevanta-public/releases/latest) | [Purchase a commercial license](https://buy.stripe.com/9B64gz5T7cKm86bb4Pfbq00) | [Product website](https://corevantallc.com) | [User manual](./Corevanta%20User%20Manual.pdf)
 
 ## Licensing
 
@@ -11,17 +11,20 @@ Corevanta is **source-available, not open source**.
 | Use | License | Price |
 | --- | --- | ---: |
 | Personal, educational, and other noncommercial use | [PolyForm Noncommercial License 1.0.0](./LICENSE.md) | Free |
+| Internal commercial evaluation of the official compiled installer for up to 30 days | [Corevanta Commercial Evaluation License](./EVALUATION-LICENSE.md) | Free |
 | Commercial, consulting, or business operational use | [Corevanta commercial license](./COMMERCIAL-LICENSING.md) | $5,000 USD per computer |
 
-Commercial use is not granted by the PolyForm Noncommercial License. Purchase a commercial license before using Corevanta for consulting, production, revenue-generating, or other commercial work.
+Plant engineers and other prospective commercial users may evaluate the official compiled installer internally for up to 30 days, including with internally authorized copies of their own project and backup files. The evaluation does not permit production use, billable services, customer deliverables, or ongoing business use. See the [evaluation terms](./EVALUATION-LICENSE.md).
+
+Commercial use beyond that limited evaluation is not granted by the PolyForm Noncommercial License or evaluation license. Purchase a commercial license before using Corevanta for consulting, production, revenue-generating, or other commercial work.
 
 Required Notice: Copyright 2026 Corevanta LLC.
 
 ## Download
 
-Most users should download the latest digitally signed Windows installer from [GitHub Releases](https://github.com/CorevantaLLC/corevanta-public/releases/latest). The official installer is signed by Corevanta LLC.
+Most users should [download the latest digitally signed Windows installer directly](https://github.com/CorevantaLLC/corevanta-public/releases/latest/download/Corevanta-GitHub-Free-Setup-v1.0.4.exe). Release notes and file details are available from [GitHub Releases](https://github.com/CorevantaLLC/corevanta-public/releases/latest). The official installer is signed by Corevanta LLC.
 
-The no-activation build is licensed only for noncommercial use. A purchased commercial license uses the licensed Corevanta build and is activated with the purchaser email.
+The no-activation build is available for noncommercial use and for the limited 30-day commercial evaluation described above. A purchased commercial license uses the licensed Corevanta build and is activated with the purchaser email.
 
 ## Build from source
 
@@ -42,6 +45,7 @@ The public project builds the noncommercial, no-activation edition. Building or 
 
 - [Corevanta User Manual](./Corevanta%20User%20Manual.pdf)
 - [Corevanta Quick Start Guide](./Corevanta%20Quick%20Start%20Guide.pdf)
+- [Commercial evaluation terms](./EVALUATION-LICENSE.md)
 - [Commercial licensing](./COMMERCIAL-LICENSING.md)
 - [Third-party notices](./THIRD_PARTY_NOTICES.md)
 
